@@ -9,4 +9,6 @@ obj/
 Debug/
 Release/
 
+# Configs
+appsettings*.json
 # Misc

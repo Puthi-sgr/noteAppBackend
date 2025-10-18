@@ -52,6 +52,16 @@ namespace NoteApp.Controllers
             return Ok(updated);
         }
 
+        // DELETE /notes/{id}
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            if (!TryGetUserId(out var userId)) return Unauthorized();
+            var deleted = await _service.DeleteAsync(userId, id);
+            if (!deleted) return NotFound();
+            return Ok(new { message = $"Note {id} deleted" });
+        }
+
         // Reads demo user id from header until auth is implemented
         private bool TryGetUserId(out int userId)
         {

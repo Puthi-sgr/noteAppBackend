@@ -87,5 +87,13 @@ namespace NoteApp.Services
             CreatedAt = n.CreatedAt,
             UpdatedAt = n.UpdatedAt
         };
+
+        // Delete a note for a specific user
+        public async Task<bool> DeleteAsync(int userId, int id)
+        {
+            // Repository enforces ownership in WHERE clause
+            var deleted = await _repo.DeleteAsync(id, userId);
+            return deleted;
+        }
     }
 }

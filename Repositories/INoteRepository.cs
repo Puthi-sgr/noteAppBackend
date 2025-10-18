@@ -16,5 +16,6 @@ namespace NoteApp.Repositories
         Task<int> CreateAsync(Note note);
         Task<IReadOnlyList<Note>> GetAsync(int userId, int skip = 0, int take = 50, string sort = "createdAt", bool desc = true);
         Task<bool> UpdateAsync(Note note);
+        Task<bool> DeleteAsync(int id, int userId);
     }
 }

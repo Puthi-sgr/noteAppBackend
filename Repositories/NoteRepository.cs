@@ -139,6 +139,14 @@ namespace NoteApp.Repositories
             return cmd.ExecuteNonQuery() > 0;
         }
 
+        public async Task<bool> DeleteAsync(int id, int userId)
+        {
+            await EnsureOpenAsync();
+            const string sql = @"DELETE FROM dbo.Notes WHERE Id = @Id AND UserId = @UserId";
+            var rows = await _db.ExecuteAsync(sql, new { Id = id, UserId = userId });
+            return rows > 0;
+        }
+
         private static void AddParam(IDbCommand cmd, string name, object value)
         {
             var p = cmd.CreateParameter();

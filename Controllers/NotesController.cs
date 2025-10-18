@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using NoteApp.Dtos;
 using NoteApp.Services;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace NoteApp.Controllers
 {
     [ApiController]
     [Route("notes")]
+    [Authorize]
     public class NotesController : ControllerBase
     {
         private readonly NoteService _service;
@@ -18,7 +21,7 @@ namespace NoteApp.Controllers
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<NoteReadDto>>> List([FromQuery] int skip = 0, [FromQuery] int take = 50, [FromQuery] string sort = "createdAt", [FromQuery] bool desc = true)
         {
-            if (!TryGetUserId(out var userId)) return Unauthorized(); //returns bool and out param userId
+            if (!TryGetUserId(out var userId)) return Unauthorized();
             var items = await _service.ListAsync(userId, skip, take, sort, desc);
             return Ok(items);
         }
@@ -62,14 +65,12 @@ namespace NoteApp.Controllers
             return Ok(new { message = $"Note has been deleted deleted" });
         }
 
-        // Reads demo user id from header until auth is implemented
+        // Resolve user id from JWT claims
         private bool TryGetUserId(out int userId)
         {
             userId = default;
-            if (!Request.Headers.TryGetValue("X-Demo-UserId", out var values)) //If true assign the x-header value to values    
-                return false;
-            return int.TryParse(values.FirstOrDefault(), out userId); //return true if parse is successful
-            //
+            var value = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(value, out userId);
         }
     }
 }

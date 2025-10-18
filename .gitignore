@@ -11,4 +11,5 @@ Release/
 
 # Configs
 appsettings*.json
+appsettings.json
 # Misc

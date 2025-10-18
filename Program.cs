@@ -2,6 +2,9 @@ using System.Data;
 using Microsoft.Data.SqlClient;
 using NoteApp.Repositories;
 using NoteApp.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,8 +25,34 @@ builder.Services.AddScoped<IDbConnection>(sp =>
 
 // Repositories dependency injection here
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 // Services dependency injection here
 builder.Services.AddScoped<NoteService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Identity.IPasswordHasher<NoteApp.Domain.User>, Microsoft.AspNetCore.Identity.PasswordHasher<NoteApp.Domain.User>>();
+
+// JWT Authentication
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+var jwtKey = builder.Configuration["Jwt:Key"];
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!));
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = signingKey,
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
 
 
 var app = builder.Build();
@@ -37,6 +66,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

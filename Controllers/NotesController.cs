@@ -59,7 +59,7 @@ namespace NoteApp.Controllers
             if (!TryGetUserId(out var userId)) return Unauthorized();
             var deleted = await _service.DeleteAsync(userId, id);
             if (!deleted) return NotFound();
-            return Ok(new { message = $"Note {id} deleted" });
+            return Ok(new { message = $"Note has been deleted deleted" });
         }
 
         // Reads demo user id from header until auth is implemented

@@ -1,10 +1,14 @@
-using System.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using NoteApp.Repositories;
 using NoteApp.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Data;
 using System.Text;
+using static System.Net.WebRequestMethods;
+using NoteApp.Data;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,16 +21,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // CORS
-var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
-builder.Services.AddCors(options =>
+var allowedOrigins = new[]
 {
-    options.AddPolicy("AppCors", policy =>
-    {
-        policy.WithOrigins(corsOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
+    "http://localhost:5173",                             // Vite dev
+    "https://github.com/Puthi-sr/noteapp",             // GH Pages (prod) - replace with actual frontend origin if different
+    "https://Puthi-sgr.github.io",
+    "https://puthinote-proxy.chethaputhi.workers.dev"    // Cloudflare Worker proxy
+};
+
+builder.Services.AddCors(o => 
+    o.AddPolicy("frontend", p =>
+        p.WithOrigins(allowedOrigins)
+         .AllowAnyHeader()         // includes Authorization, Content-Type
+         .AllowAnyMethod()         // GET/POST/PUT/DELETE/OPTIONS
+));
 
 // Register database connection (Scoped per request)
 builder.Services.AddScoped<IDbConnection>(sp =>
@@ -36,6 +44,10 @@ builder.Services.AddScoped<IDbConnection>(sp =>
 });
 
 // Repositories dependency injection here
+var efConn = builder.Configuration.GetConnectionString("EfLearning")
+    ?? throw new InvalidOperationException("Missing ConnectionStrings:EfLearning");
+
+builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(efConn));
 builder.Services.AddScoped<INoteRepository, NoteRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 // Services dependency injection here
@@ -78,7 +90,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AppCors");
+app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

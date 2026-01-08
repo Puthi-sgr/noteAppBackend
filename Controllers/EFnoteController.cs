@@ -5,8 +5,6 @@ using NoteApp.Domain;
 using NoteApp.Dtos;
 using System.Threading.Tasks;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
 namespace NoteApp.Controllers
 {
     [Route("api/EFnote")]
@@ -20,7 +18,6 @@ namespace NoteApp.Controllers
             _db = db;
         }
 
-        // GET: api/<ValuesController>
         [HttpGet]
         public async Task<List<Note>> Get(CancellationToken ct)
         {
@@ -41,7 +38,7 @@ namespace NoteApp.Controllers
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Note>> GetById(int id, CancellationToken ct)
         {
-            var note = await _db.Notes.FindAsync(new object?[] { id }, ct); //We use dbcontext note entity to generate sql and find the note by id
+            var note = await _db.Notes.FindAsync(new object?[] { id }, ct);
             return note is null ? NotFound() : Ok(note);
         }
 
@@ -53,7 +50,61 @@ namespace NoteApp.Controllers
                  .Include(n => n.Comments)
                  .FirstOrDefaultAsync(n => n.Id == id, ct);
 
-            return note is null ? NotFound() : Ok(note);
+            if (note is null)
+                return NotFound();
+
+            // Map entity to DTO
+            var noteDto = new NoteReadDto
+            {
+                Id = note.Id,
+                Title = note.Title,
+                Content = note.Content,
+                Comments = note.Comments.Select(c => new CommentReadDto
+                {
+                    Id = c.Id,
+                    NoteId = c.NoteId,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt
+                }).ToList()
+            };
+
+            return Ok(noteDto);
+        }
+
+        [HttpPost("{id:int}/comment")]
+        public async Task<ActionResult> AddComment(int id, CommentCreateDto req, CancellationToken ct)
+        {
+            var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            var note = await _db.Notes.FirstOrDefaultAsync(n => n.Id == id, ct);
+
+            if (note is null)
+            {
+                return NotFound();
+            }
+
+            var result = _db.Comments.Add(new Comment
+            {
+                NoteId = note.Id,
+                UserId = 0, // Placeholder for UserId
+                Content = req.Text,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _db.SaveChangesAsync(ct);
+
+            await tx.CommitAsync(ct);
+
+            // Return DTO instead of entity
+            var commentDto = new CommentReadDto
+            {
+                Id = result.Entity.Id,
+                NoteId = result.Entity.NoteId,
+                Content = result.Entity.Content,
+                CreatedAt = result.Entity.CreatedAt
+            };
+
+            return CreatedAtAction(nameof(GetById), new { id = note.Id }, commentDto);
         }
     }
 }

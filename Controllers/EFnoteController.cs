@@ -44,5 +44,16 @@ namespace NoteApp.Controllers
             var note = await _db.Notes.FindAsync(new object?[] { id }, ct); //We use dbcontext note entity to generate sql and find the note by id
             return note is null ? NotFound() : Ok(note);
         }
+
+        [HttpGet("{id:int}/with-comments")]
+        public async Task<ActionResult<NoteReadDto>> GetWithComments(int id, CancellationToken ct)
+        {
+            var note = await _db.Notes
+                 .AsNoTracking()
+                 .Include(n => n.Comments)
+                 .FirstOrDefaultAsync(n => n.Id == id, ct);
+
+            return note is null ? NotFound() : Ok(note);
+        }
     }
 }

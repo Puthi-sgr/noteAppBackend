@@ -21,7 +21,9 @@ namespace NoteApp.Controllers
         [HttpGet]
         public async Task<List<Note>> Get(CancellationToken ct)
         {
-            return await _db.Notes.AsNoTracking().OrderByDescending(n => n.Id).ToListAsync(ct);
+            return await _db.Notes
+                .AsNoTracking()
+                .OrderByDescending(n => n.Id).ToListAsync(ct);
         }
 
         [HttpPost]
